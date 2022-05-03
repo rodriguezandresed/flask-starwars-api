@@ -5,6 +5,7 @@ import os
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
@@ -15,6 +16,9 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_SECRET_KEY"]=os.environ.get("FLASK_APP_KEY")
+
+jwt = JWTManager(app)
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
@@ -34,6 +38,7 @@ def sitemap():
 
 @app.route('/user', methods=['GET'])
 @app.route('/user/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+@jwt_required()
 def handle_user(user_id = None):
 	if request.method == 'GET':
 		if user_id  is None:
@@ -54,6 +59,11 @@ def handle_user(user_id = None):
 			return jsonify({
 				"msg": "something happened, try again"				
 			}), 400
+
+		if not body.get("password"):
+			return jsonify({
+				"msg": "something happened, try again"				
+			}), 400
 			
 		user_update = User.query.filter_by(id=user_id).first()
 		
@@ -61,7 +71,8 @@ def handle_user(user_id = None):
 			return jsonify({
 				"msg": "User not found"
 			}), 404
-			
+
+		user = User(email=body["email"], password=body["password"])	
 		try:
 		
 			user_update.email = body.get("email")
@@ -107,6 +118,38 @@ def handle_other_user():
 		db.session.rollback()
 		return jsonify(error.args), 500
 		
+@app.route('/login', methods=['POST'])
+def handle_login():
+	email=request.json.get("email", None)
+	password=request.json.get("password", None)
+
+	if email is not  None and password is not None:
+		user = User.query.filter_by(email=email, password=password).one_or_none()
+		if user is not None:
+			print(user.id)
+			create_token=create_access_token(identity=user.id)
+			return jsonify(
+				{
+					"token":create_token,
+					"user_id":user.id,
+					"email":user.email
+
+				}
+			)
+		else:
+			return jsonify({
+			"msg": "Not Found"
+		}), 404
+
+	else:
+		return jsonify({
+			"msg": "something happened, try again"
+		}), 400
+
+	
+
+
+	return "hola soy el login"
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
