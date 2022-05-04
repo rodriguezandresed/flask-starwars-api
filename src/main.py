@@ -35,9 +35,8 @@ def sitemap():
 
 
 
-@app.route('/user', methods=['GET'])
+@app.route('/users', methods=['GET'])
 @app.route('/user/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
-@jwt_required()
 def handle_user(user_id = None):
 	if request.method == 'GET':
 		if user_id  is None:
@@ -107,7 +106,7 @@ def handle_other_user():
 			"msg": "something happened, try again"
 		}), 400
 		
-	user = User(email=body["email"])
+	user = User(email=body["email"], password=body["password"])
 	try:
 		db.session.add(user)
 		db.session.commit()
@@ -146,8 +145,7 @@ def handle_login():
 		}), 400
 
 @app.route('/planets', methods=['GET'])
-@app.route('/planets/<int:planet_uid>', methods=['GET', 'PUT', 'DELETE'])
-@jwt_required()
+@app.route('/planets/<int:planet_uid>', methods=['GET'])
 def handle_planet(planet_uid= None):
 	if request.method == 'GET':
 		if planet_uid  is None:
@@ -160,18 +158,34 @@ def handle_planet(planet_uid= None):
 				return jsonify(planet.serialize()),200
 			else:
 				return jsonify({
-					"msg": "user not found"
+					"msg": "Planet not found"
 				}), 404
 
+@app.route('/person', methods=['GET'])
+@app.route('/person/<int:person_uid>', methods=['GET'])
+def handle_person(person_uid= None):
+	if request.method == 'GET':
+		if person_uid is None:
+			people = Person.query.all()
+			people = list(map(lambda person: person.serialize(), people))
+			return jsonify(people),200
+		else:
+			person = Person.query.filter_by(uid=person_uid).first()
+			if person is not None:
+				return jsonify(person.serialize()),200
+			else:
+				return jsonify({
+					"msg": "Person not found"
+				}), 404
+	
 
 @app.route('/favorites', methods=['GET'])
-@app.route('/favorites/<int:favorite_id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/favorites/<string:nature>/<int:name_uid>', methods=['GET', 'DELETE'])
 @jwt_required()
-def handle_favorite(favorite_id= None):
+def handle_favorite(nature=None, name_uid=None, favorite_id= None):
+	user = get_jwt_identity()
 	if request.method == 'GET':
-		user = get_jwt_identity()
-		print(user)
-		if favorite_id  is None:
+		if favorite_id  is None and name_uid is None and nature is None:
 			favorites = Favorite.query.filter_by(user_id=user)
 			favorites = list(map(lambda favorite: favorite.serialize(), favorites))
 			return jsonify(favorites),200
@@ -183,14 +197,35 @@ def handle_favorite(favorite_id= None):
 				return jsonify({
 					"msg": "user not found"
 				}), 404
-
+	
+	if request.method == 'DELETE':
+		print(nature)
+		if nature == "planet":	
+			favorite_delete = Favorite.query.filter_by(favorite_nature=1,favorite_uid=name_uid,user_id=user ).first()
+		if nature == "person":
+			favorite_delete = Favorite.query.filter_by(favorite_nature=2,favorite_uid=name_uid, user_id=user).first()
+		else:
+			pass
+		if favorite_delete is None:
+			return jsonify({
+				"msg": "Favorite not found"
+			}), 404
+			
+		db.session.delete(favorite_delete)
+		
+		try: 
+			db.session.commit()
+			return jsonify([]), 204
+		except Exception as error:
+			db.session.rollback()
+			return jsonify(error.args)	
 
 @app.route('/favorites/<string:nature>/<int:name_uid>', methods=['POST'])
 @jwt_required()
 def handle_add_favorite(nature, name_uid):
 	body=request.json
 	body_name=body.get("favorite_name", None)
-# creo que no hace falta
+# creo que no hace falta, [update] lo que no es *****
 #	body_nature=body.get("favorite_nature", None)
 
 	if body_name is not  None:
@@ -198,6 +233,7 @@ def handle_add_favorite(nature, name_uid):
 		if user is not None:
 			nature_id = Nature.query.filter_by(nature_name = nature.lower()).first()
 			if nature == "planet":
+				wildcard=1
 				name = Planet.query.filter_by(planet_name = body_name).first()
 				if name is not None:
 					favorite= Favorite.query.filter_by(favorite_name=body_name, user_id=user).first()
@@ -206,7 +242,7 @@ def handle_add_favorite(nature, name_uid):
 								"msg":"Favorited item already exists!"
 							})
 					else:
-						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=nature_id.id, user_id=user )	
+						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=wildcard,favorite_uid=name_uid, user_id=user )	
 						try:
 							db.session.add(favorite)
 							db.session.commit()
@@ -219,6 +255,7 @@ def handle_add_favorite(nature, name_uid):
 									"msg": "Planet does not exist!"
 									}), 400
 			elif nature == "person":
+				wildcard=2
 				name = Person.query.filter_by(person_name = body_name).first()
 				if name is not None:
 					## para sqlflask el comparativo AND es una , 
@@ -228,7 +265,7 @@ def handle_add_favorite(nature, name_uid):
 								"msg":"Favorited item already exists!"
 							})
 					else:
-						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=nature_id.id, user_id=user )	
+						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=wildcard,favorite_uid=name_uid,  user_id=user )	
 						try:
 							db.session.add(favorite)
 							db.session.commit()
