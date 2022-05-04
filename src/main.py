@@ -5,11 +5,11 @@ import os
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Planet, Person, Favorite, Nature
 #from models import Person
 
 app = Flask(__name__)
@@ -17,7 +17,6 @@ app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_SECRET_KEY"]=os.environ.get("FLASK_APP_KEY")
-
 jwt = JWTManager(app)
 MIGRATE = Migrate(app, db)
 db.init_app(app)
@@ -146,10 +145,114 @@ def handle_login():
 			"msg": "something happened, try again"
 		}), 400
 
-	
+@app.route('/planets', methods=['GET'])
+@app.route('/planets/<int:planet_uid>', methods=['GET', 'PUT', 'DELETE'])
+@jwt_required()
+def handle_planet(planet_uid= None):
+	if request.method == 'GET':
+		if planet_uid  is None:
+			planets = Planet.query.all()
+			planets = list(map(lambda planet: planet.serialize(), planets))
+			return jsonify(planets),200
+		else:
+			planet = Planet.query.filter_by(uid=planet_uid).first()
+			if planet is not None:
+				return jsonify(planet.serialize()),200
+			else:
+				return jsonify({
+					"msg": "user not found"
+				}), 404
 
 
-	return "hola soy el login"
+@app.route('/favorites', methods=['GET'])
+@app.route('/favorites/<int:favorite_id>', methods=['GET', 'PUT', 'DELETE'])
+@jwt_required()
+def handle_favorite(favorite_id= None):
+	if request.method == 'GET':
+		user = get_jwt_identity()
+		print(user)
+		if favorite_id  is None:
+			favorites = Favorite.query.filter_by(user_id=user)
+			favorites = list(map(lambda favorite: favorite.serialize(), favorites))
+			return jsonify(favorites),200
+		else:
+			favorite = Favorite.query.filter_by(user_id=user).first()
+			if favorite is not None:
+				return jsonify(favorite.serialize()),200
+			else:
+				return jsonify({
+					"msg": "user not found"
+				}), 404
+
+
+@app.route('/favorites/<string:nature>/<int:name_uid>', methods=['POST'])
+@jwt_required()
+def handle_add_favorite(nature, name_uid):
+	body=request.json
+	body_name=body.get("favorite_name", None)
+# creo que no hace falta
+#	body_nature=body.get("favorite_nature", None)
+
+	if body_name is not  None:
+		user = get_jwt_identity()
+		if user is not None:
+			nature_id = Nature.query.filter_by(nature_name = nature.lower()).first()
+			if nature == "planet":
+				name = Planet.query.filter_by(planet_name = body_name).first()
+				if name is not None:
+					favorite= Favorite.query.filter_by(favorite_name=body_name, user_id=user).first()
+					if favorite is not None:
+							return jsonify({
+								"msg":"Favorited item already exists!"
+							})
+					else:
+						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=nature_id.id, user_id=user )	
+						try:
+							db.session.add(favorite)
+							db.session.commit()
+							return jsonify(favorite.serialize()), 201
+						except Exception as error:
+							db.session.rollback()
+							return jsonify(error.args), 500
+				else: 
+					return jsonify({
+									"msg": "Planet does not exist!"
+									}), 400
+			elif nature == "person":
+				name = Person.query.filter_by(person_name = body_name).first()
+				if name is not None:
+					## para sqlflask el comparativo AND es una , 
+					favorite= Favorite.query.filter_by( favorite_name=body_name, user_id=user ).first()
+					if favorite is not None:
+							return jsonify({
+								"msg":"Favorited item already exists!"
+							})
+					else:
+						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=nature_id.id, user_id=user )	
+						try:
+							db.session.add(favorite)
+							db.session.commit()
+							return jsonify(favorite.serialize()), 201
+						except Exception as error:
+							db.session.rollback()
+							return jsonify(error.args), 500
+				else: 
+					return jsonify({
+									"msg": "Person does not exist!"
+									}), 400
+			else:
+				return jsonify({
+								"msg": "Not a Planet or a Person!"
+								}), 400
+		else:
+				return jsonify({
+								"msg": "Please log in!"
+								}), 400
+	else:
+		return jsonify({
+						"msg": "something happened, try again [bad body format]"
+						}), 400
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':

@@ -42,10 +42,9 @@ class Favorite(db.Model):
     # Here we define columns for the table address.
     # Notice that each column is also a normal Python instance attribute.
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     favorite_name = db.Column(db.String(250), nullable=False)
     favorite_nature = db.Column(db.Integer, db.ForeignKey("nature.id"))
-    favorite_status = db.Column(db.Boolean, nullable=False)
     __table_args__ = (db.UniqueConstraint(
 	"user_id",
 	"favorite_name",
@@ -59,7 +58,8 @@ class Favorite(db.Model):
     def serialize(self):
         return {
 			"favorite_name": self.favorite_name,
-			"favorite_nature":self.favorite_nature
+			"favorite_nature":self.favorite_nature,
+            "user_id":self.user_id
 			#do not serialize the password, it's a security breach
 		}
 
@@ -89,7 +89,7 @@ class Planet(db.Model):
     # Here we define columns for the table address.
     # Notice that each column is also a normal Python instance attribute.
     uid = db.Column(db.Integer, primary_key=True)
-    planetName = db.Column(db.String(250))
+    planet_name = db.Column(db.String(250))
     planet_nature = db.Column(db.Integer, db.ForeignKey("nature.id"))
 
     def __repr__(self):
