@@ -9,7 +9,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Planet, Person, Favorite, Nature
+from models import db, User, Planet, People, Favorite
 #from models import Person
 
 app = Flask(__name__)
@@ -145,15 +145,15 @@ def handle_login():
 		}), 400
 
 @app.route('/planets', methods=['GET'])
-@app.route('/planets/<int:planet_uid>', methods=['GET'])
-def handle_planet(planet_uid= None):
+@app.route('/planets/<int:planet_id>', methods=['GET'])
+def handle_planet(planet_id= None):
 	if request.method == 'GET':
-		if planet_uid  is None:
+		if planet_id  is None:
 			planets = Planet.query.all()
 			planets = list(map(lambda planet: planet.serialize(), planets))
 			return jsonify(planets),200
 		else:
-			planet = Planet.query.filter_by(uid=planet_uid).first()
+			planet = Planet.query.filter_by(id=planet_id).first()
 			if planet is not None:
 				return jsonify(planet.serialize()),200
 			else:
@@ -161,16 +161,16 @@ def handle_planet(planet_uid= None):
 					"msg": "Planet not found"
 				}), 404
 
-@app.route('/person', methods=['GET'])
-@app.route('/person/<int:person_uid>', methods=['GET'])
-def handle_person(person_uid= None):
+@app.route('/people', methods=['GET'])
+@app.route('/people/<int:person_id>', methods=['GET'])
+def handle_person(people_id= None):
 	if request.method == 'GET':
-		if person_uid is None:
-			people = Person.query.all()
+		if people_id is None:
+			people = People.query.all()
 			people = list(map(lambda person: person.serialize(), people))
 			return jsonify(people),200
 		else:
-			person = Person.query.filter_by(uid=person_uid).first()
+			person = People.query.filter_by(id=people_id).first()
 			if person is not None:
 				return jsonify(person.serialize()),200
 			else:
@@ -180,12 +180,12 @@ def handle_person(person_uid= None):
 	
 
 @app.route('/favorites', methods=['GET'])
-@app.route('/favorites/<string:nature>/<int:name_uid>', methods=['GET', 'DELETE'])
+@app.route('/favorites/<string:nature>/<int:name_id>', methods=['GET', 'DELETE'])
 @jwt_required()
-def handle_favorite(nature=None, name_uid=None, favorite_id= None):
+def handle_favorite(nature=None, name_id=None, favorite_id= None):
 	user = get_jwt_identity()
 	if request.method == 'GET':
-		if favorite_id  is None and name_uid is None and nature is None:
+		if favorite_id  is None and name_id is None and nature is None:
 			favorites = Favorite.query.filter_by(user_id=user)
 			favorites = list(map(lambda favorite: favorite.serialize(), favorites))
 			return jsonify(favorites),200
@@ -201,9 +201,9 @@ def handle_favorite(nature=None, name_uid=None, favorite_id= None):
 	if request.method == 'DELETE':
 		print(nature)
 		if nature == "planet":	
-			favorite_delete = Favorite.query.filter_by(favorite_nature=1,favorite_uid=name_uid,user_id=user ).first()
-		if nature == "person":
-			favorite_delete = Favorite.query.filter_by(favorite_nature=2,favorite_uid=name_uid, user_id=user).first()
+			favorite_delete = Favorite.query.filter_by(favorite_nature=1,favorite_id=name_id,user_id=user ).first()
+		if nature == "people":
+			favorite_delete = Favorite.query.filter_by(favorite_nature=2,favorite_id=name_id, user_id=user).first()
 		else:
 			pass
 		if favorite_delete is None:
@@ -220,9 +220,9 @@ def handle_favorite(nature=None, name_uid=None, favorite_id= None):
 			db.session.rollback()
 			return jsonify(error.args)	
 
-@app.route('/favorites/<string:nature>/<int:name_uid>', methods=['POST'])
+@app.route('/favorites/<string:nature>/<int:name_id>', methods=['POST'])
 @jwt_required()
-def handle_add_favorite(nature, name_uid):
+def handle_add_favorite(nature, name_id):
 	body=request.json
 	body_name=body.get("favorite_name", None)
 # creo que no hace falta, [update] lo que no es *****
@@ -231,10 +231,9 @@ def handle_add_favorite(nature, name_uid):
 	if body_name is not  None:
 		user = get_jwt_identity()
 		if user is not None:
-			nature_id = Nature.query.filter_by(nature_name = nature.lower()).first()
-			if nature == "planet":
+			if nature == "planets":
 				wildcard=1
-				name = Planet.query.filter_by(planet_name = body_name).first()
+				name = Planet.query.filter_by(name = body_name).first()
 				if name is not None:
 					favorite= Favorite.query.filter_by(favorite_name=body_name, user_id=user).first()
 					if favorite is not None:
@@ -242,7 +241,7 @@ def handle_add_favorite(nature, name_uid):
 								"msg":"Favorited item already exists!"
 							})
 					else:
-						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=wildcard,favorite_uid=name_uid, user_id=user )	
+						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=wildcard,favorite_id=name_id, user_id=user )	
 						try:
 							db.session.add(favorite)
 							db.session.commit()
@@ -254,9 +253,9 @@ def handle_add_favorite(nature, name_uid):
 					return jsonify({
 									"msg": "Planet does not exist!"
 									}), 400
-			elif nature == "person":
+			elif nature == "people":
 				wildcard=2
-				name = Person.query.filter_by(person_name = body_name).first()
+				name = People.query.filter_by(name = body_name).first()
 				if name is not None:
 					## para sqlflask el comparativo AND es una , 
 					favorite= Favorite.query.filter_by( favorite_name=body_name, user_id=user ).first()
@@ -265,7 +264,7 @@ def handle_add_favorite(nature, name_uid):
 								"msg":"Favorited item already exists!"
 							})
 					else:
-						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=wildcard,favorite_uid=name_uid,  user_id=user )	
+						favorite = Favorite(favorite_name=body["favorite_name"], favorite_nature=wildcard,favorite_id=name_id,  user_id=user )	
 						try:
 							db.session.add(favorite)
 							db.session.commit()

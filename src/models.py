@@ -19,23 +19,23 @@ class User(db.Model):
 		}
 
 
-class Nature(db.Model):
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
-    id = db.Column(db.Integer, primary_key=True)
-    nature_name = db.Column(db.String(250))
-    nature_person = db.relationship('Person', backref="nature", uselist=True)
-    nature_planet = db.relationship('Planet', backref="nature", uselist=True)
-    nature_favorite = db.relationship('Favorite', backref="nature", uselist=True)
+# class Nature(db.Model):
+#     # Here we define columns for the table address.
+#     # Notice that each column is also a normal Python instance attribute.
+#     id = db.Column(db.Integer, primary_key=True)
+#     nature_name = db.Column(db.String(250))
+#     nature_person = db.relationship('Person', backref="nature", uselist=True)
+#     nature_planet = db.relationship('Planet', backref="nature", uselist=True)
+#     nature_favorite = db.relationship('Favorite', backref="nature", uselist=True)
 
-    def __repr__(self):
-        return f'<Nature > f{self.nature_name}'
+#     def __repr__(self):
+#         return f'<Nature > f{self.nature_name}'
 
-    def serialize(self):
-        return {
-			"natureName": self.natureName,
-			#do not serialize the password, it's a security breach
-		}
+#     def serialize(self):
+#         return {
+# 			"natureName": self.natureName,
+# 			#do not serialize the password, it's a security breach
+# 		}
 
 
 class Favorite(db.Model):
@@ -44,10 +44,10 @@ class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     favorite_name = db.Column(db.String(250), nullable=False)
-    favorite_uid = db.Column(db.Integer, nullable=False)
-    favorite_nature = db.Column(db.Integer, db.ForeignKey("nature.id"))
+    favorite_id = db.Column(db.Integer, nullable=False)
+    favorite_nature = db.Column(db.Integer)
     __table_args__ = (db.UniqueConstraint(
-	"user_id","favorite_name","favorite_nature", "favorite_uid",
+	"user_id","favorite_name","favorite_nature", "favorite_id",
 	name="debe_tener_una_sola_coincidencia"
     ),)
 
@@ -59,50 +59,83 @@ class Favorite(db.Model):
         return {
 			"favorite_name": self.favorite_name,
 			"favorite_nature":self.favorite_nature,
-            "favorite_uid":self.favorite_uid,
+            "favorite_id":self.favorite_id,
             "user_id":self.user_id
 			#do not serialize the password, it's a security breach
 		}
 
 
-class Person(db.Model):
+class People(db.Model):
 
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
-    uid = db.Column(db.Integer, primary_key=True)
-    person_name = db.Column(db.String(250))
-    person_nature = db.Column(db.Integer, db.ForeignKey("nature.id"))
-    
+    __tablename__ = 'people'
+
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(250))
+    name = db.Column(db.String(100), nullable=False)
+    height = db.Column(db.String(100))
+    mass = db.Column(db.String(100))
+    hair_color = db.Column(db.String(100))
+    skin_color = db.Column(db.String(100))
+    eye_color = db.Column(db.String(100))
+    birth_year = db.Column(db.String(100))
+    gender = db.Column(db.String(100))
+    homeworld = db.Column(db.String(100))
 
     def __repr__(self):
-        return f'<Person> f{self.uid}'
+        return f'<Person> f{self.id}'
 
     def serialize(self):
-        return {
-			"person_name": self.person_name,
-			"person_nature":self.person_nature,
-            "person_uid":self.uid
-			#do not serialize the password, it's a security breach
-		}
+        return{
+            "id":self.id,
+            "image":self.image,
+            "height":self.height,
+            "mass":self.mass,
+            "hair_color":self.hair_color,
+            "skin_color":self.skin_color,
+            "eye_color":self.eye_color,
+            "birth_year":self.birth_year,
+            "gender":self.gender,
+            "name":self.name,
+            "homeworld":self.homeworld,
+        }
+
+
+
 
 
 class Planet(db.Model):
 
     # Here we define columns for the table address.
     # Notice that each column is also a normal Python instance attribute.
-    uid = db.Column(db.Integer, primary_key=True)
-    planet_name = db.Column(db.String(250))
-    planet_nature = db.Column(db.Integer, db.ForeignKey("nature.id"))
+    
+    __tablename__ = 'planets'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    image = db.Column(db.String(250))
+    climate = db.Column(db.String(100))
+    diameter = db.Column(db.String(100))
+    gravity = db.Column(db.String(100))
+    orbital_period = db.Column(db.String(100))
+    population = db.Column(db.String(100))
+    rotation_period = db.Column(db.String(100))
+    surface_water = db.Column(db.String(100))
+    terrain = db.Column(db.String(100))
 
     def __repr__(self):
         return f'<Planet> f{self.uid}'
 
     def serialize(self):
-        return {
-			"planet_name": self.planet_name,
-			"planet_nature":self.planet_nature,
-            "planet_uid":self.uid
-			#do not serialize the password, it's a security breach
-		}
-
+        return{
+            "id":self.id,
+            "image":self.image,
+            "climate":self.climate,
+            "diameter":self.diameter,
+            "gravity":self.gravity,
+            "name":self.name,
+            "orbital_period":self.orbital_period,
+            "population":self.population,
+            "rotation_period":self.rotation_period,
+            "surface_water":self.surface_water,
+            "terrain":self.terrain,
+        }
 
