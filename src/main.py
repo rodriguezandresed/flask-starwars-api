@@ -2,6 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
+import requests
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
@@ -9,9 +10,9 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Planet, People, Favorite
+from models import db, User, Planets, People, Favorite
 #from models import Person
-
+BASE_URL = "https://www.swapi.tech/api"
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
@@ -149,11 +150,11 @@ def handle_login():
 def handle_planet(planet_id= None):
 	if request.method == 'GET':
 		if planet_id  is None:
-			planets = Planet.query.all()
+			planets = Planets.query.all()
 			planets = list(map(lambda planet: planet.serialize(), planets))
 			return jsonify(planets),200
 		else:
-			planet = Planet.query.filter_by(id=planet_id).first()
+			planet = Planets.query.filter_by(id=planet_id).first()
 			if planet is not None:
 				return jsonify(planet.serialize()),200
 			else:
@@ -233,7 +234,7 @@ def handle_add_favorite(nature, name_id):
 		if user is not None:
 			if nature == "planets":
 				wildcard=1
-				name = Planet.query.filter_by(name = body_name).first()
+				name = Planets.query.filter_by(name = body_name).first()
 				if name is not None:
 					favorite= Favorite.query.filter_by(favorite_name=body_name, user_id=user).first()
 					if favorite is not None:
@@ -288,6 +289,57 @@ def handle_add_favorite(nature, name_id):
 		return jsonify({
 						"msg": "something happened, try again [bad body format]"
 						}), 400
+
+
+
+@app.route('/population/people', methods=['POST'])
+def population_character():
+    #Solicitud de las caracteristicas
+    response = requests.get(f"{BASE_URL}/{'people'}/?page=1&limit=20")
+    response = response.json()
+    all_results = []
+
+    for result in response['results']:
+        detail = requests.get(result['url'])
+        detail = detail.json()
+        all_results.append(detail['result']['properties'])
+
+    instances = []
+
+    for character in all_results:
+        
+        instance = People.create(character)
+
+        instances.append(instance)
+
+    return jsonify(list(map(lambda inst: inst.serialize(), instances))), 200
+
+
+
+
+@app.route('/population/planets', methods=['POST'])
+def population_planets():
+    #Solicitud de las caracteristicas
+    response = requests.get(f"{BASE_URL}/{'planets'}/?page=1&limit=20")
+    response = response.json()
+    all_results = []
+
+    for result in response['results']:
+        detail = requests.get(result['url'])
+        detail = detail.json()
+        all_results.append(detail['result']['properties'])
+
+    instances = []
+
+    for planets in all_results:
+        
+        instance = Planets.create(planets)
+
+        instances.append(instance)
+
+    return jsonify(list(map(lambda inst: inst.serialize(), instances))), 200
+
+
 
 
 # this only runs if `$ python src/main.py` is executed

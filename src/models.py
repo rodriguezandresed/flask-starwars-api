@@ -99,11 +99,44 @@ class People(db.Model):
             "homeworld":self.homeworld,
         }
 
+    def __init__(self, *args, **kwargs):
+        """
+            "name":"andres",
+            "lastname":"rodriguez"
+
+
+        """
+      
+
+        for (key, value) in kwargs.items():
+            if hasattr(self, key):
+                attr_type = getattr(self.__class__, key).type
+
+                try:
+                    attr_type.python_type(value)
+                    setattr(self, key, value)
+                except Exception as error:
+                    print(f"ignota los demas valores: {error.args}")
+
+    @classmethod
+    def create(cls, data):
+        # creamos instancia
+        instance = cls(**data)
+        if (not isinstance(instance, cls)):
+            print("fallamos")
+            return None
+        db.session.add(instance)
+        try:
+            db.session.commit()
+            print(f"creado: {instance.name}")
+            return instance
+        except Exception as error:
+            db.session.rollback()
+            print(error.args)
 
 
 
-
-class Planet(db.Model):
+class Planets(db.Model):
 
     # Here we define columns for the table address.
     # Notice that each column is also a normal Python instance attribute.
@@ -122,7 +155,7 @@ class Planet(db.Model):
     terrain = db.Column(db.String(100))
 
     def __repr__(self):
-        return f'<Planet> f{self.uid}'
+        return f'<Planets> f{self.uid}'
 
     def serialize(self):
         return{
@@ -139,3 +172,37 @@ class Planet(db.Model):
             "terrain":self.terrain,
         }
 
+    def __init__(self, *args, **kwargs):
+        """
+            "name":"andres",
+            "lastname":"rodriguez"
+
+
+        """
+      
+
+        for (key, value) in kwargs.items():
+            if hasattr(self, key):
+                attr_type = getattr(self.__class__, key).type
+
+                try:
+                    attr_type.python_type(value)
+                    setattr(self, key, value)
+                except Exception as error:
+                    print(f"Ignore the rest: {error.args}")
+
+    @classmethod
+    def create(cls, data):
+        # creamos instancia
+        instance = cls(**data)
+        if (not isinstance(instance, cls)):
+            print("We failed")
+            return None
+        db.session.add(instance)
+        try:
+            db.session.commit()
+            print(f"Created: {instance.name}")
+            return instance
+        except Exception as error:
+            db.session.rollback()
+            print(error.args)
