@@ -70,14 +70,15 @@ class People(db.Model):
     __tablename__ = 'people'
 
     id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(250))
     name = db.Column(db.String(100), nullable=False)
-    height = db.Column(db.String(100))
-    mass = db.Column(db.String(100))
+    gender = db.Column(db.String(100))
     hair_color = db.Column(db.String(100))
     skin_color = db.Column(db.String(100))
     eye_color = db.Column(db.String(100))
     birth_year = db.Column(db.String(100))
+    image = db.Column(db.String(250))
+    height = db.Column(db.String(100))
+    mass = db.Column(db.String(100))
     gender = db.Column(db.String(100))
     homeworld = db.Column(db.String(100))
 
@@ -87,15 +88,15 @@ class People(db.Model):
     def serialize(self):
         return{
             "id":self.id,
-            "image":self.image,
-            "height":self.height,
-            "mass":self.mass,
+            "name":self.name,
+            "gender":self.gender,
             "hair_color":self.hair_color,
             "skin_color":self.skin_color,
             "eye_color":self.eye_color,
+            "image":self.image,
+            "height":self.height,
+            "mass":self.mass,
             "birth_year":self.birth_year,
-            "gender":self.gender,
-            "name":self.name,
             "homeworld":self.homeworld,
         }
 
@@ -123,12 +124,12 @@ class People(db.Model):
         # creamos instancia
         instance = cls(**data)
         if (not isinstance(instance, cls)):
-            print("fallamos")
+            print("These aren't the droids you're looking for")
             return None
         db.session.add(instance)
         try:
             db.session.commit()
-            print(f"creado: {instance.name}")
+            print(f"Created: {instance.name}")
             return instance
         except Exception as error:
             db.session.rollback()
@@ -160,11 +161,11 @@ class Planets(db.Model):
     def serialize(self):
         return{
             "id":self.id,
+            "name":self.name,
             "image":self.image,
             "climate":self.climate,
             "diameter":self.diameter,
             "gravity":self.gravity,
-            "name":self.name,
             "orbital_period":self.orbital_period,
             "population":self.population,
             "rotation_period":self.rotation_period,

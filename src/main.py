@@ -12,7 +12,8 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Planets, People, Favorite
 #from models import Person
-BASE_URL = "https://www.swapi.tech/api"
+BASE_URL = "https://swapi.dev/api"
+## BASE_URL = "https://www.swapi.tech/api"
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
@@ -302,7 +303,8 @@ def population_character():
     for result in response['results']:
         detail = requests.get(result['url'])
         detail = detail.json()
-        all_results.append(detail['result']['properties'])
+##      all_results.append(detail['results']['properties'])
+        all_results.append(detail)
 
     instances = []
 
@@ -327,7 +329,8 @@ def population_planets():
     for result in response['results']:
         detail = requests.get(result['url'])
         detail = detail.json()
-        all_results.append(detail['result']['properties'])
+ ##     all_results.append(detail['results']['properties'])
+        all_results.append(detail)
 
     instances = []
 
