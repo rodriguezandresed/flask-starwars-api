@@ -81,6 +81,9 @@ class People(db.Model):
     mass = db.Column(db.String(100))
     gender = db.Column(db.String(100))
     homeworld = db.Column(db.String(100))
+    status = db.Column(db.String(100))
+    nature = db.Column(db.String(100))
+    
 
     def __repr__(self):
         return f'<Person> f{self.id}'
@@ -98,6 +101,8 @@ class People(db.Model):
             "mass":self.mass,
             "birth_year":self.birth_year,
             "homeworld":self.homeworld,
+            "nature":self.nature,
+            "status":self.status,
         }
 
     def __init__(self, *args, **kwargs):
@@ -154,6 +159,8 @@ class Planets(db.Model):
     rotation_period = db.Column(db.String(100))
     surface_water = db.Column(db.String(100))
     terrain = db.Column(db.String(100))
+    status = db.Column(db.String(100))
+    nature = db.Column(db.String(100))
 
     def __repr__(self):
         return f'<Planets> f{self.uid}'
@@ -171,6 +178,8 @@ class Planets(db.Model):
             "rotation_period":self.rotation_period,
             "surface_water":self.surface_water,
             "terrain":self.terrain,
+            "nature":self.nature,
+            "status":self.status,
         }
 
     def __init__(self, *args, **kwargs):

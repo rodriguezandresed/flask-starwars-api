@@ -202,7 +202,7 @@ def handle_favorite(nature=None, name_id=None, favorite_id= None):
 	
 	if request.method == 'DELETE':
 		print(nature)
-		if nature == "planet":	
+		if nature == "planets":	
 			favorite_delete = Favorite.query.filter_by(favorite_nature=1,favorite_id=name_id,user_id=user ).first()
 		if nature == "people":
 			favorite_delete = Favorite.query.filter_by(favorite_nature=2,favorite_id=name_id, user_id=user).first()
